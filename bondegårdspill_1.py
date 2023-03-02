@@ -1,3 +1,7 @@
+# bakgrunn av LuminousDragonGames, hentet fra https://opengameart.org/content/perfectly-seamless-grass
+# pug-animasjon av AntumDeluge, hentet fra https://opengameart.org/content/pug-rework
+# høne-animasjon av AntumDeluge, hentet fra https://opengameart.org/content/chick
+
 import pygame as pg
 
 # Konstanter
