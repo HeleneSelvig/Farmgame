@@ -1,12 +1,14 @@
-# nyeste forsøk startet 10. mars, kode kopiert fra funker_manglerhøyball.py
-# prøver å legge til høyballer og kollisjon mellom høyball, pug og kylling
+# nyeste forsøk startet 11. mars, kode kopiert fra siste_fungerende.py
+# prøver å legge til høyballer i en liste og lage mange, med kollisjon mellom høyball, pug og kylling
 
 # bakgrunn av LuminousDragonGames, hentet fra https://opengameart.org/content/perfectly-seamless-grass
 # pug-animasjon av AntumDeluge, hentet fra https://opengameart.org/content/pug-rework
 # høne-animasjon av AntumDeluge, hentet fra https://opengameart.org/content/chick
 # musikk av Alexandr Zhelanov, hentet fra https://opengameart.org/content/casual-game-track
-# https://www.geeksforgeeks.org/python-display-text-to-pygame-window/  tekst
-# høyballer og hønsehus tegnet av Thea
+# bjeffe-lyd av apolloaiello, hentet fra https://pixabay.com/sound-effects/search/dog/?manual_search=1&order=None
+# hønelyd: 
+# kilde til hvordan legge til tekst: https://www.geeksforgeeks.org/python-display-text-to-pygame-window/ 
+# høyballer, lyn og hønsehus tegnet av Thea i Gimp
 
 #disclaimer: noen av tallene i kollisjonene og for karakterene (spesielt i spritesheet-klassene), som at vi sier +11 og +38 osv., er regnet ut fordi det i spritesheetene er mellomrom mellom karakterene som gjør rektanglene deres større enn ønskelig
     #tallene har derfor kun betydning for akkurat de bildene vi bruker, og utregningene vi har gjort
@@ -26,12 +28,15 @@ Lykke til!
 
 
 
-
-
 # importerer pygame-biblioteket
 import pygame as pg
+# importerer sys som hjelper med å lukke spillet
+import sys
 # importerer filen der spritesheet-klassen ligger
-import spritesheet
+#import spritesheet
+# importerer randint og randrange funksjonene fra random-biblioteket
+from random import randint, randrange
+
 
 # Konstanter
 WIDTH = 1000  # bredden til vinduet
@@ -53,29 +58,30 @@ surface = pg.display.set_mode(SIZE)
 backgroundImg = pg.image.load("bilder/TileableBackGround.png")
 
 #skalerer bakgrunnsbilde til ønsket størrelse
-backgroundImg = pg.transform.scale(backgroundImg, (1000,600))
+backgroundImg = pg.transform.scale(backgroundImg, (WIDTH,HEIGHT))
+
 
 
 #laster inn musikkfilen
-pg.mixer.music.load("Casual game track.ogg")
+pg.mixer.music.load("lyd/Casual game track.ogg")
 #spiller musikken (-1 ganger gir at den loopes evig)
 pg.mixer.music.play(loops=-1)
+
+
+
+#henter inn bjeffe-lyd
+barking = pg.mixer.Sound("lyd/small-dog-81977.ogg")
+
+"""
+#henter inn kakling
+clucking = pg.mixer.Sound("lyd/chicken-talk-30453.mp3")
+"""
 
 
 #henter font og skriftstørrelse
 font = pg.font.SysFont("Arial",48)
 
 
-#SPRITESHEETS, med hjelp fra coding with russ på youtube
-#henter først spritesheetet med 12 pug-bilder (convert_alpha gjør at bildet bruker samme pixel-format som skjermen)
-sprite_sheet_image = pg.image.load("bilder/pug-001.png").convert_alpha()
-#sender spritesheetet gjennom SpriteSheet-klassen, slik at det blir skalert og delt opp i 12 enkeltbilder
-sprite_sheet = spritesheet.SpriteSheet(sprite_sheet_image)
-
-#henter spritesheetet med 12 kylling-bilder
-sprite_sheet_image2 = pg.image.load("bilder/chick.png").convert_alpha()
-#skalerer og deler opp spritesheetet i 12 enkeltbilder
-sprite_sheet2 = spritesheet.SpriteSheetChick(sprite_sheet_image2)
 
 
 # lager en liste som sier hvor mange bilder det er i hver animasjon
@@ -84,6 +90,78 @@ animation_steps = 3
 last_update = pg.time.get_ticks()
 # i millisekunder
 animation_cooldown = 100
+
+
+
+
+
+
+class SpriteSheet():
+    def __init__(self, image):
+        self.sheet = image
+        
+    def get_image(self, frame, width, height, scale, direction):
+        if direction == "up":
+            y = height*0
+        if direction == "right":
+            y = height*1
+        if direction == "down":
+            y = height*2
+        if direction == "left":
+            y = height*3
+        image = pg.Surface((width, height)).convert_alpha()
+        image.blit(self.sheet, (0,0), ((frame * width), y, width, height))
+        image = pg.transform.scale(image, (width * scale, height * scale))
+    
+    
+        return image
+
+"""
+utregninger gjort for høne-spritesheetet
+vi sier rektangelet rundt høna er 26x26
+hvert rektangel (hele bildet/12) er 48x64 eller 62
+    64-26 = 38
+    48-26 = 22, 22/2 = 11
+"""
+
+class SpriteSheetChick():
+    def __init__(self, image):
+        self.sheet = image
+        
+    def get_image(self, frame, width, height, scale, direction):
+        if direction == "up":
+            y = 38
+        if direction == "right":
+            y = 38+62
+        if direction == "down":
+            y = 38+124
+        if direction == "left":
+            y = 38+184
+        image = pg.Surface((width, height)).convert_alpha()
+        image.blit(self.sheet, (0,0), ((frame*48 + 11), y, width, height))
+        image = pg.transform.scale(image, (width * scale, height * scale))
+    
+    
+        return image
+
+
+
+
+
+
+
+
+#SPRITESHEETS, inspirert av coding with russ på youtube
+#henter først spritesheetet med 12 pug-bilder (convert_alpha gjør at bildet bruker samme pixel-format som skjermen)
+sprite_sheet_image = pg.image.load("bilder/pug-001.png").convert_alpha()
+#sender spritesheetet gjennom SpriteSheet-klassen, slik at det blir skalert og delt opp i 12 enkeltbilder
+sprite_sheet = SpriteSheet(sprite_sheet_image)
+
+#henter spritesheetet med 12 kylling-bilder
+sprite_sheet_image2 = pg.image.load("bilder/chick.png").convert_alpha()
+#skalerer og deler opp spritesheetet i 12 enkeltbilder
+sprite_sheet2 = SpriteSheetChick(sprite_sheet_image2)
+
 
 
 
@@ -259,13 +337,13 @@ class Chick(Character):
 
 
 
-
+"""
 #pug objekt
-pug = Pug(500, 300, "bilder/pug-001.png", "left", 32, 1.5, sprite_sheet)
+pug = Pug(600, 300, "bilder/pug-001.png", "left", 32, 1.5, sprite_sheet)
 
 #kylling objekt
-chick = Chick(200, 300, "bilder/chick.png", "right", 26, 2, sprite_sheet2)
-
+chick = Chick(50, 300, "bilder/chick.png", "right", 26, 1.8, sprite_sheet2)
+"""
 
 
 
@@ -299,12 +377,47 @@ class Rektangel:
         surface.blit(self.rektangelImg, (self.x, self.y))
 
 
-#hønsehus objekt
-honsehus = Rektangel(700,200,50,50, "bilder/honsehus.png", 4)
 
-#høyball objekter
-hoyball1 = Rektangel(500,100,64,64, "bilder/hoyball.png", 1)
-hoyball2 = Rektangel(500,100+64,64,64, "bilder/hoyball.png", 1)
+game_version = randint(1,2)
+if game_version == 1:
+    #pug objekt
+    pug = Pug(600, 300, "bilder/pug-001.png", "left", 32, 1.5, sprite_sheet)
+
+    #kylling objekt
+    chick = Chick(50, 300, "bilder/chick.png", "right", 26, 1.8, sprite_sheet2)
+
+    #hønsehus objekt
+    honsehus = Rektangel(700,200,50,50, "bilder/honsehus.png", 4)
+    
+    lyn = Rektangel(350,300,13,22,"bilder/lyn.png",1.5)
+
+if game_version == 2:
+    #pug objekt
+    pug = Pug(400, 300, "bilder/pug-001.png", "right", 32, 1.5, sprite_sheet)
+
+    #kylling objekt
+    chick = Chick(750, 300, "bilder/chick.png", "left", 26, 1.8, sprite_sheet2)
+
+    #hønsehus objekt
+    honsehus = Rektangel(20,200,50,50, "bilder/honsehus.png", 4)
+    
+    lyn = Rektangel(350,300,13,22,"bilder/lyn.png",1.5)
+
+    
+
+
+
+#lager en tom liste
+hoyballer = []
+"""
+#lager flere høyballer på én gang som legges til i listen
+for i in range(6):
+    hoyballer.append(Rektangel(400, 100 + i*64,64,64, "bilder/hoyball.png", 1))
+    """
+for i in range(10):
+    hoyballer.append(Rektangel(randrange(100,900,64), randrange(0,500,64),64,64, "bilder/hoyball.png", 1))
+    
+
 
 
 
@@ -322,6 +435,8 @@ textRectChick.center = (WIDTH // 2, HEIGHT // 2)
 
 
 
+
+
 #lager en metode som sjekker kollisjon mellom kyllingen og hønsehuset
 def collisionChickHonsehus(chick, honsehus):
     #sjekker om kyllingens x-verdi kolliderer med hønsehusets x-verdi
@@ -330,6 +445,14 @@ def collisionChickHonsehus(chick, honsehus):
         if chick.y + chick.size >= honsehus.y and chick.y + 38 <= honsehus.y + honsehus.h:
             #pug skal bli borte dersom kylling vinner
             pug.hidden = True
+            
+            """
+            #stopper bakgrunnsmusikk
+            pg.mixer.music.stop()
+            
+            #spiller kakle-lyd
+            clucking.play()
+            """
             #skriver vinnertekst for kyllingen
             surface.blit(textChick, textRectChick)
      
@@ -342,9 +465,20 @@ def collisionPugChick(pug, chick):
         if chick.y + chick.size >= pug.y and chick.y <= pug.y + pug.size:
             #kylling blir borte dersom hunden vinner
             chick.hidden = True
+            
+            
+            #stopper bakgrunnsmusikk
+            pg.mixer.music.stop()
+            #spiller bjeffe-lyd
+            pg.mixer.Sound.play(barking,loops=0)
+            
             #skriver vinnertekst for hunden
             surface.blit(textPug, textRectPug)
             
+
+
+
+
 
 #lager en metode som sjekker kollisjon mellom hunden og hønsehuset
 def collisionPugHonsehus(pug, honsehus):
@@ -355,7 +489,7 @@ def collisionPugHonsehus(pug, honsehus):
             pug.size * pug.scale,
             pug.size * pug.scale)
     
-    #sjekker for kollisjon mellom hund og hønsehus
+    #sjekker for kollisjon mellom hund og hønsehus (colliderect sjekker om rektanglene overlapper noe sted)
     if pg.Rect.colliderect(ny_rect, honsehus.rektangelRect):
         #hvis hunden treffer overnfra eller nedenfra skal fart i y-retning stoppe
         if pug.direction in ("up", "down"):
@@ -365,8 +499,9 @@ def collisionPugHonsehus(pug, honsehus):
             pug.vx = 0
 
 
+
 #lager en metode for kollisjon mellom høyballene og karakterene
-def collisionHoyballPugChick(hoyball1, hoyball2, pug, chick):
+def collisionHoyballPugChick(hoyballer,pug,chick):
     #lager et nytt rektangel rundt hunden med de skalerte x- og y-verdiene
     ny_rect = pg.Rect(
             pug.x + pug.vx,
@@ -381,42 +516,65 @@ def collisionHoyballPugChick(hoyball1, hoyball2, pug, chick):
             chick.size * chick.scale,
             chick.size * chick.scale)
     
-    #sjekker for kollisjon mellom hund og høyball1
-    if pg.Rect.colliderect(ny_rect, hoyball1.rektangelRect):
-        #hvis hunden treffer overnfra eller nedenfra skal fart i y-retning stoppe
-        if pug.direction in ("up", "down"):
-            pug.vy = 0
-        #hvis hunden treffer fra siden skal fart i x-retning stoppe
-        if pug.direction in ("left", "right"):
-            pug.vx = 0
     
-    #sjekker for kollisjon mellom hund og høyball2
-    if pg.Rect.colliderect(ny_rect, hoyball2.rektangelRect):
-        #hvis hunden treffer overnfra eller nedenfra skal fart i y-retning stoppe
-        if pug.direction in ("up", "down"):
-            pug.vy = 0
-        #hvis hunden treffer fra siden skal fart i x-retning stoppe
-        if pug.direction in ("left", "right"):
-            pug.vx = 0
     
-    #sjekker for kollisjon mellom kylling og hoyball1
-    if pg.Rect.colliderect(ny_rect2, hoyball1.rektangelRect):
-        #hvis kyllingen treffer overnfra eller nedenfra skal fart i y-retning stoppe
-        if chick.direction in ("up", "down"):
-            chick.vy = 0
-        #hvis kyllingen treffer fra siden skal fart i x-retning stoppe
-        if chick.direction in ("left", "right"):
-            chick.vx = 0
+    #går gjennom alle høyballene
+    for hoyball in hoyballer:
+        #sjekker for kollisjon mellom hund og høyballene
+        if pg.Rect.colliderect(ny_rect, hoyball.rektangelRect):
+            #hvis hunden treffer overnfra eller nedenfra skal fart i y-retning stoppe
+            if pug.direction in ("up", "down"):
+                pug.vy = 0
+            #hvis hunden treffer fra siden skal fart i x-retning stoppe
+            if pug.direction in ("left", "right"):
+                pug.vx = 0
+        
+        #sjekker for kollisjon mellom kylling og høyballene
+        if pg.Rect.colliderect(ny_rect2, hoyball.rektangelRect):
+            #hvis kyllingen treffer overnfra eller nedenfra skal fart i y-retning stoppe
+            if chick.direction in ("up", "down"):
+                chick.vy = 0
+            #hvis kyllingen treffer fra siden skal fart i x-retning stoppe
+            if chick.direction in ("left", "right"):
+                chick.vx = 0
     
-    #sjekker for kollisjon mellom kylling og hoyball2
-    if pg.Rect.colliderect(ny_rect2, hoyball2.rektangelRect):
-        #hvis kyllingen treffer overnfra eller nedenfra skal fart i y-retning stoppe
-        if chick.direction in ("up", "down"):
-            chick.vy = 0
-        #hvis kyllingen treffer fra siden skal fart i x-retning stoppe
-        if chick.direction in ("left", "right"):
-            chick.vx = 0
+
+
+def collisionLynChickPug(lyn,chick,pug):
+    ny_rect = pg.Rect(
+            pug.x + pug.vx,
+            pug.y + pug.vy,
+            pug.size * pug.scale,
+            pug.size * pug.scale)
     
+    #lager et nytt rektangel rundt kyllingen med de skalerte x- og y-verdiene
+    ny_rect2 = pg.Rect(
+            chick.x + chick.vx,
+            chick.y + chick.vy,
+            chick.size * chick.scale,
+            chick.size * chick.scale)
+    
+    if pg.Rect.colliderect(ny_rect, lyn.rektangelRect):
+        if pug.direction == "up":
+            pug.vy = -10
+        elif pug.direction == "down":
+            pug.vy = 10
+        elif pug.direction == "left":
+            pug.vx = -10
+        elif pug.direction == "right":
+            pug.vx = 10
+            
+    if pg.Rect.colliderect(ny_rect2, lyn.rektangelRect):
+        if chick.direction == "up":
+            chick.vy = -10
+        elif chick.direction == "down":
+            chick.vy = 10
+        elif chick.direction == "left":
+            chick.vx = -10
+        elif chick.direction == "right":
+            chick.vx = 10
+        
+
 
 
 
@@ -438,6 +596,14 @@ while run:
     surface.blit(backgroundImg, (0,0))
     
     
+    #tegner høyballene
+    for hoyball in hoyballer:
+        hoyball.draw()
+    
+    #tegner lyn
+    lyn.draw()
+    
+    
     #sjekker kollisjon mellom kylling og hønsehus
     collisionChickHonsehus(chick, honsehus)
     #sjekker kollisjon mellom pug og kylling
@@ -445,16 +611,15 @@ while run:
     #sjekker kollisjon mellom pug og hønsehus
     collisionPugHonsehus(pug, honsehus)
     #sjekker kollisjon mellom karakterene og høyballene
-    collisionHoyballPugChick(hoyball1,hoyball2,pug,chick)
+    collisionHoyballPugChick(hoyballer,pug,chick)
+    
+    collisionLynChickPug(lyn,chick,pug)
     
     
     #tegner hønsehus
     honsehus.draw()
     
-    #tegner første høyball
-    hoyball1.draw()
-    #tegner andre høyball
-    hoyball2.draw()
+
     
     #så lenge høna ikke har tapt skal den vises og oppdateres
     if not chick.hidden:
@@ -495,9 +660,9 @@ while run:
 
 # Avslutter pygame når spilløkken ikke lenger kjøres
 pg.quit()
-
-
-
+# hjelper med å avslutte spillet
+# gir en melding om "process ended with exit code 0", som betyr at alt gikk som det skulle
+sys.exit()
 
 
 
@@ -510,4 +675,9 @@ pg.quit()
 #nevne i presentasjon at f.eks. tallet 11, 38 og så videre har med formen til kyllingen å gjøre og er regnet ut
 
 
-
+# spørre didrik: hvilken type er sprite_sheet?
+# skal vi ha med det i konstruktøren som atributter? skal vi ha med konstruktør som en metode?
+# er metodene i klassen public? eller # restricted
+# sjanse for å måtte presentere på tirsdag? kan vi få torsdag?
+# hvorfor går karakteren ned ved høyre kollisjon med lyn
+# burde vi ta karakter eller måloppnåelse?
